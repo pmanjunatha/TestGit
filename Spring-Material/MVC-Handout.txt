@@ -1,0 +1,1501 @@
+                    Title :   Login-MVC-Database
+-----------------index.jsp------------------------------------
+<jsp:forward  page="logins.form"></jsp:forward>
+---------------login.jsp---------------------------------------
+<form   action="check.form"   method="post">
+ Username : <input     type=text            name="t1"> <br>
+ Password  : <input    type=password    name="t2"><br>
+ <input    type=submit    value="submit">
+</form>
+---------------LoginController.java---------------------
+package pack1.controller;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
+import pack1.dao.LoginDao;
+@Controller
+public class LoginController 
+{
+	@Autowired
+	private  LoginDao   dao;
+	@RequestMapping(value="/logins", method=RequestMethod.GET)
+	public   ModelAndView   getLoginPage()
+	{
+		return   new  ModelAndView("login");
+	}
+	@RequestMapping(value="check", method=RequestMethod.POST)
+	public   ModelAndView     checkLogin(@RequestParam("t1") String  s1,@RequestParam("t2") String  s2)
+	{
+		boolean   b= dao.check(s1,s2);
+		if(b)
+		{
+			return   new  ModelAndView("success");
+		}
+		else
+		{
+			return   new  ModelAndView("failure");
+		}
+	}
+}
+------------------------LoginDao.java---------------------------------------
+package pack1.dao;
+public interface LoginDao
+{
+	boolean   check(String  s1, String  s2);
+}
+-----------------------LoginDaoImpl.java----------------------------------
+package pack1.dao;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+@Repository
+public class LoginDaoImpl implements LoginDao 
+{
+	@Autowired
+	private   JdbcTemplate   jt;
+	public boolean check(String s1, String s2) 
+	{
+		int  i = (Integer)jt.queryForObject("select  count(*)  from  Login   where  
+		username=?  and  password=?",Integer.class,s1,s2);
+		if(i==1)
+			return  true;
+		else
+			return false;
+	}
+}
+---------------------success.jsp--------------------------------------------
+<h1>Login  Success </h1>
+-------------------failure.jsp---------------------------------------------
+<h1>  Login Failed. </h1>
+-------------------web.xml--------------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xmlns:web="http://xmlns.jcp.org/xml/ns/javaee" 
+xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee 
+                     http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+  <servlet>
+    <servlet-name>spring</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>spring</servlet-name>
+    <url-pattern>*.form</url-pattern>
+  </servlet-mapping>
+</web-app>
+-----------------------spring-servlet.xml------------------------
+<beans   xmlns="http://www.springframework.org/schema/beans"
+xmlns:context="http://www.springframework.org/schema/context"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+  <context:component-scan   base-package="pack1"/>
+  <!--   handler mapping -->
+  <bean    class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping"/>
+  <!--   view  resolver  -->
+  <bean  id="viewResolver"     class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property    name="prefix"     value="/"/>
+        <property    name="suffix"     value=".jsp"/>
+  </bean>
+  <bean  id="jt"    class="org.springframework.jdbc.core.JdbcTemplate">
+       <property    name="dataSource"     ref="ds"/>
+  </bean>
+  <bean    id="ds"    class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+       <property   name="driverClassName"    value="oracle.jdbc.driver.OracleDriver"/>
+       <property    name="url"     value="jdbc:oracle:thin:@localhost:1521:XE"/>
+       <property    name="username"     value="system"/>
+       <property   name="password"     value="tiger"/>
+  </bean>
+</beans>  
+=======================================================================
+		Title: Login MVC  with  annotation  validations
+--------------index.jsp---------------------------
+<jsp:forward page="loginpage.form"></jsp:forward>
+-----------login.jsp---------------------
+<%@taglib  uri="http://www.springframework.org/tags/form"   prefix="form"%>
+  <form:form   method="post"   action="check.form"   commandName="loginFormBackingObject">
+     Username: <form:input  path="uname"/> <form:errors  path="uname"/><br>
+     Password : <form:password  path="pwd"/><form:errors path="pwd"/> <br>
+     <input  type=submit  value="click"/>
+  </form:form>     
+---------------spring-servlet.xml------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+   xmlns:context="http://www.springframework.org/schema/context"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-4.0.xsd
+http://www.springframework.org/schema/mvc
+http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd">
+  
+   <context:component-scan  base-package="com.sathya.spring.mvc"/>
+    <!--   view resolver -->
+   <bean  id="viewResolver" 
+           class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property  name="prefix"   value="/"/>
+        <property  name="suffix"   value=".jsp"/>
+   </bean>
+   <bean  id="messageSource"
+   class="org.springframework.context.support.ResourceBundleMessageSource">
+       <property  name="basename"   value="messages"/>
+   </bean>
+   <mvc:annotation-driven/>
+</beans>   
+------------------Login.java------------------------------
+//Login.java  (command class)
+package com.sathya.spring.mvc;
+import javax.validation.constraints.Size;
+import org.hibernate.validator.constraints.NotEmpty;
+public class Login 
+{
+	@Size(min=4,max=8)
+	private  String  uname;
+	@NotEmpty
+	private  String   pwd;
+	//setters & getters
+	public String getUname() {
+		return uname;
+	}
+	public void setUname(String uname) {
+		this.uname = uname;
+	}
+	public String getPwd() {
+		return pwd;
+	}
+	public void setPwd(String pwd) {
+		this.pwd = pwd;
+	}
+}
+-------------------LoginController.java--------------------
+package com.sathya.spring.mvc;
+import javax.validation.Valid;
+import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.ModelAndView;
+@Controller
+public class LoginController
+{
+	@RequestMapping(value="loginpage",method=RequestMethod.GET)
+	public  ModelAndView   getLoginPage()
+	{
+		return   new  ModelAndView("login","loginFormBackingObject",new Login());
+	}
+	@RequestMapping(value="check",method=RequestMethod.POST)
+	public  ModelAndView   processRequest( @Valid @ModelAttribute("loginFormBackingObject")
+	Login login, BindingResult result)
+	{
+		if(result.hasErrors())
+		{
+			return  new  ModelAndView("login");
+		}
+		else
+		{			
+		String  username=login.getUname();
+		String  password=login.getPwd();
+		if(username.equals("sathya") &&  password.equals("java"))
+			return  new  ModelAndView("success");
+		else
+			return  new  ModelAndView("failure");
+		}
+	}
+}
+------------------messages.properties----------------------
+#messages.properties
+Size.loginFormBackingObject.uname=Username should be from {2} to {1} length
+NotEmpty.loginFormBackingObject.pwd=Password is required
+-----------------failure.jsp------------------
+<h1>
+<%
+  out.println("Login failed");
+ %>
+</h1>
+----------------success.jsp------------------
+ <h1>
+ <%
+    out.println("Login  Success");
+ %>
+ </h1>
+=====================================================
+	Title:   RegisterMVC  with  validations
+---------------------------index.jsp------------------------------------------------
+<a  href="registerpage.html"> register here </a>
+-------------------------register.jsp--------------------------------------------
+<%@ taglib  uri="http://www.springframework.org/tags/form"   prefix="spring" %>
+<spring:form   action="registerUser.html"  method="post"  commandName="reg">
+ <table>
+     <tr>
+         <td>Username</td><td><spring:input  path="uname"/></td>
+	 <td><spring:errors  path="uname"/></td>
+     </tr>
+     <tr>
+        <td>Email</td><td><spring:input   path="email"/></td>
+	<td><spring:errors   path="email"/></td>
+     </tr>
+     <tr>
+        <td>Age</td><td><spring:input   path="age"/></td>
+	<td><spring:errors  path="age"/></td>
+     </tr>
+     <tr>
+         <td>Gender</td><td><spring:radiobutton  path="gender"  value="MALE"
+	                                                                              label="Male"/>
+                 <spring:radiobutton  path="gender"   value="FEMALE"   label="Female"/></td>
+		 <td><spring:errors  path="gender"/></td>
+     </tr>
+     <tr>
+         <td>Birth Day(MM/dd/yyyy)</td><td><spring:input   path="birthDay"/></td>
+	 <td><spring:errors  path="birthDay"/></td>
+     </tr>                 
+     <tr>
+         <td> Country </td> <td><spring:select   path="country">
+         						 <spring:option  value="">---select--- </spring:option>
+         						 <spring:option  value="INDIA">India</spring:option>
+         						 <spring:option  value="CHAINA">chaina</spring:option>
+         						 <spring:option  value="USA">USA</spring:option>
+         					    </spring:select>
+         					</td>
+         					<td> <spring:errors   path="country"/></td>
+    </tr>         											 	 
+ </table>
+     <input   type=submit    value="submit">
+</spring:form>
+-------------------------------------RegisterController.java------------------------------------------
+package com.sathya.spring.mvc;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import javax.validation.Valid;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.ModelAndView;
+@Controller
+public class RegisterController 
+{
+      @InitBinder
+        public void initBinder(WebDataBinder binder)
+	{
+        CustomDateEditor   editor = new CustomDateEditor(
+	new SimpleDateFormat("MM/dd/yyyy"),  true);
+        binder.registerCustomEditor(Date.class, editor);
+        }
+	@RequestMapping(value="registerpage", method=RequestMethod.GET)
+	public    ModelAndView    getRegisterPage()
+	{
+		//Register    registerObj =new  Register();
+		return  new  ModelAndView("register",  "reg",  new   Register());
+	}
+	@RequestMapping(value="registerUser",  method=RequestMethod.POST)
+	public   ModelAndView   registerUser(@Valid @ModelAttribute("reg")
+	Register  regis, BindingResult   result)
+	{
+		if(result.hasErrors())
+		{
+			return  new  ModelAndView("register");
+		}
+		else
+		{
+			return  new  ModelAndView("ok");
+		}
+	}
+}
+----------------------------Register.java------------------------------
+package com.sathya.spring.mvc;
+import java.util.Date;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Past;
+import javax.validation.constraints.Size;
+import org.hibernate.validator.constraints.Email;
+import org.hibernate.validator.constraints.NotEmpty;
+public class Register
+{
+	@Size(min=4,max=8)
+	private  String  uname;
+	@NotEmpty  @Email
+	private  String  email;
+	@NotNull  @Min(18)  @Max(25)
+	private  Integer   age;
+	@NotNull
+	private  Gender   gender;
+	@NotNull
+	@Past
+	private   Date   birthDay;
+	@NotEmpty
+	private  String  country;
+	public   enum   Gender{
+		MALE, FEMALE }
+	//setters & getters
+	public String getUname() {
+		return uname;
+	}
+	public void setUname(String uname) {
+		this.uname = uname;
+	}
+	public String getEmail() {
+		return email;
+	}
+	public void setEmail(String email) {
+		this.email = email;
+	}
+	public Integer getAge() {
+		return age;
+	}
+	public void setAge(Integer age) {
+		this.age = age;
+	}
+	public Gender getGender() {
+		return gender;
+	}
+	public void setGender(Gender gender) {
+		this.gender = gender;
+	}
+	public Date getBirthDay() {
+		return birthDay;
+	}
+	public void setBirthDay(Date birthDay) {
+		this.birthDay = birthDay;
+	}
+	public String getCountry() {
+		return country;
+	}
+	public void setCountry(String country) {
+		this.country = country;
+	}
+}
+---------------------------web.xml----------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app id="WebApp_ID" version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee 
+  http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+	<display-name>
+	SpringMVC</display-name>
+    <servlet>
+	  <servlet-name>spring</servlet-name>
+	  <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+	  <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+       <servlet-name>spring</servlet-name>
+       <url-pattern>*.html</url-pattern>
+    </servlet-mapping>
+ </web-app>
+-----------------------spring-servlet.xml-----------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+ xmlns:context="http://www.springframework.org/schema/context"
+ xmlns:mvc="http://www.springframework.org/schema/mvc"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-4.0.xsd
+http://www.springframework.org/schema/mvc
+http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd">
+ 
+  <mvc:annotation-driven/>
+  <context:component-scan  base-package="com.sathya.spring.mvc"/>
+  <bean id="viewResolver" 
+      class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    <property  name="prefix"  value="/"/>
+    <property  name="suffix"   value=".jsp"/>
+  </bean>
+  <bean  id="messageSource" 
+  class="org.springframework.context.support.ResourceBundleMessageSource">
+    <property  name="basename"   value="messages"/>
+  </bean>
+</beans>
+--------------------------ok.jsp---------------------------------
+<h1>
+     Registration  successful............
+</h1>
+------------------------messages.properties--------------------------
+#error message for uname
+Size.reg.uname=Username  must between 4 to 8 chars
+#error messages for  email
+NotEmpty.reg.email=Email  is required
+Email.reg.email=Email format is not valid
+# error messages for  age
+NotNull.reg.age=Age is required
+Min.reg.age=Age >=18
+Max.reg.age=Age <= 25
+# error  message for  gender
+NotNull.reg.gender=Gender is required
+# error messages for  birthDay
+NotNull.reg.birthDay=Birth Day is required
+Past.reg.birthDay=Birth Day is invalid
+# error message for country
+NotEmpty.reg.country=Choose country
+=====================================================
+
+	Title: SpringLoginI18N application
+======================================================
+---------------------Login.java-----------------------------------
+package com.sathya.spring.mvc.controller;
+import javax.validation.constraints.Size;
+import org.hibernate.validator.constraints.NotEmpty;
+public class Login {
+	@NotEmpty
+	private  String uname;
+	@NotEmpty
+	private  String pwd;
+	public String getUname() {
+		return uname;
+	}
+	public void setUname(String uname) {
+		this.uname = uname;
+	}
+	public String getPwd() {
+		return pwd;
+	}
+	public void setPwd(String pwd) {
+		this.pwd = pwd;
+	}
+}
+------------LoginController.java--------------------
+package com.sathya.spring.mvc.controller;
+import javax.validation.Valid;
+import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.servlet.ModelAndView;
+@Controller
+public class LoginController {
+	@RequestMapping(value="loginpage", method=RequestMethod.GET)
+	public ModelAndView  getLoginPage()
+	{
+		return  new ModelAndView("login","command",new Login());
+	}
+	@RequestMapping(value="logincheck",method=RequestMethod.POST)
+	public  ModelAndView  checkLogin(@Valid @ModelAttribute("command") 
+	Login login, BindingResult  result)
+	{
+		if(result.hasErrors())
+			return  new  ModelAndView("login");
+		else
+			return  new  ModelAndView("success","msg","Login Success");
+	}
+}
+--------------messages_en.properties--------------------
+label.uname=Username
+label.pwd=Password
+NotEmpty.command.uname=Username is mandatory
+NotEmpty.command.pwd=Password is mandatory
+-------------------spring-servlet.xml--------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+ xmlns:context="http://www.springframework.org/schema/context"
+ xmlns:mvc="http://www.springframework.org/schema/mvc"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-3.0.xsd
+http://www.springframework.org/schema/mvc
+http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd">
+  <mvc:annotation-driven/>
+  <context:component-scan  base-package="com.sathya.spring.mvc.controller"/>
+  <bean id="viewResolver" 
+  class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    <property  name="prefix"  value="/"/>
+    <property  name="suffix"   value=".jsp"/>
+  </bean>
+  <bean  id="messageSource"  
+  class="org.springframework.context.support.ResourceBundleMessageSource">
+     <property  name="basename"   value="messages"/>
+  </bean>     
+  <mvc:interceptors>
+  <bean id="localeChangeInterceptor"
+	class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor">
+		<property name="paramName" value="language" />
+  </bean>
+  </mvc:interceptors>
+  <bean id="localeResolver"
+	class="org.springframework.web.servlet.i18n.SessionLocaleResolver"/>
+</beans>
+------------------index.jsp--------------------
+<jsp:forward page="loginpage.html"/>
+------------------login.jsp--------------------
+<%@ page session="false" %>
+<%@taglib uri="http://www.springframework.org/tags/form"   prefix="form"%>
+<%@taglib uri="http://www.springframework.org/tags" prefix="spring"%>
+<html>
+  <body>
+     <center>
+       <a  href="loginpage.html?language=en">English</a>   
+       <a href="loginpage.html?language=te">Telugu</a>
+       <a  href="loginpage.html?language=hi">Hindi<br>
+   <form:form  action="logincheck.html"  method="post"  commandName="command">
+     <spring:message code="label.uname"/> : 
+     <form:input  path="uname"/> <form:errors  path="uname">
+     <spring:message  code="NotEmpty.command.uname"/></form:errors><br>
+     <spring:message  code="label.pwd"/>  : 
+     <form:password  path="pwd"/><form:errors  path="pwd">
+      <spring:message  code="NotEmpty.command.pwd"/></form:errors><br>
+     <input  type=submit  value="submit">
+   </form:form>
+  </body>
+</html>   
+-----------------success.jsp----------------------------
+<%-- success.jsp --%>
+<h1>
+  ${msg} 
+</h1>  
+=====================================================================
+	Title:  Interceptor  Example
+---------------------index.jsp-----------------------------------------------
+<a   href="home.form" >click  here</a>
+--------------------MyController.java---------------------------------
+package com.pack1;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+@Controller
+public class MyController 
+{
+	@RequestMapping(value="/home")
+	public   ModelAndView   getMessage()
+	{
+		System.out.println("getMessage().......");
+		try
+		{
+			Thread.sleep(10000);
+		}
+		catch(Exception  e)
+		{   }
+		return    new   ModelAndView("home");
+	}
+}
+-------------------------TimerInterceptor.java-------------------------------
+package com.pack2;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+public class TimerInterceptor  extends  HandlerInterceptorAdapter 
+{
+	private   long  x,y,z;
+	@Override
+	public   boolean   preHandle(HttpServletRequest request,
+			HttpServletResponse response, Object handler) throws Exception 
+	{
+		System.out.println("preHandle()........");
+		x = System.currentTimeMillis();
+		return   true;
+	}
+	@Override
+	public void postHandle(HttpServletRequest request,
+			HttpServletResponse response, Object handler,
+			ModelAndView modelAndView) throws Exception 
+	{
+		System.out.println("postHandle()..........");
+		y = System.currentTimeMillis();
+		z= y-x;
+		request.setAttribute("diff", z);
+	}
+}
+---------------------------spring-servlet.xml-------------------------------------
+<beans   xmlns="http://www.springframework.org/schema/beans"
+xmlns:context="http://www.springframework.org/schema/context"
+xmlns:mvc="http://www.springframework.org/schema/mvc"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-4.0.xsd
+http://www.springframework.org/schema/mvc
+http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd">
+
+  <context:component-scan   base-package="com.pack1"/>
+  <!--   handler mapping -->
+  <bean    class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping"/>
+  <!--   view  resolver  -->
+  <bean    class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    <property   name="prefix"     value="/"/>
+    <property   name="suffix"      value=".jsp"/>
+  </bean>
+    <mvc:interceptors>
+      <bean      class="com.pack2.TimerInterceptor"/>
+  </mvc:interceptors>
+ </beans>  
+ --------------------------------home.jsp--------------------------------------------
+ <center>
+  Time  taken  to  process  u  r  request  is  : ${diff} millis.
+</center>
+====================================================	
+	Title: FileUpload Application
+====================================================
+------------------FileUploadController.java--------------------
+package com.sathya.spring.mvc.controller;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
+@Controller
+public class FileUploadController
+{
+@RequestMapping(value="upload", method=RequestMethod.POST)
+public  ModelAndView  fileUpload(@RequestParam("file1")
+MultipartFile  file,HttpServletRequest  request)
+{
+	String  fail="";
+	String  success="";
+	if(file.getSize()!=0)
+	{
+		if(file.getContentType().equals("text/xml"))
+		{
+			try {
+				FileOutputStream  fos=
+				new FileOutputStream("E:/"+file.getOriginalFilename());
+				fos.write(file.getBytes());
+				success="U r  file  : "+file.getOriginalFilename()+" Uploaded Successfully";
+				} catch (FileNotFoundException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+		}		
+		else
+		{
+			fail="The file should be XML only!!!";
+		}
+	} //outer if
+	else
+	{
+		fail="The file should not be empty!!!";
+	}
+	if(success.length()>1)
+	{
+		return  new  ModelAndView("success","message",success);
+	}
+	else
+	{
+		return  new  ModelAndView("uploadfile","message",fail);
+	}
+   }  //end of fileUpload() method
+}//end of class
+------------success.jsp--------------------
+<h1>
+${message}
+</h1>
+------------uploadfile.jsp--------------------
+<%@taglib  uri="http://java.sun.com/jsp/jstl/core"  prefix="c"%>
+<html>
+  <body>
+ <center>
+    <c:if test="${message ne null}">
+       <c:out value="${message}"/>
+    </c:if>
+    <br>
+    <form  action="upload.html"  method="post" enctype="multipart/form-data">
+      Select a File : <input type=file  name="file1"> <br>
+      <input type=submit  value="UPLOAD">
+    </form>
+ </center>
+ </body>
+ </html>
+------------spring-servlet.xml--------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+ xmlns:context="http://www.springframework.org/schema/context"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+  <context:component-scan  base-package="com.sathya.spring.mvc.controller"/>
+  <bean id="viewResolver" 
+  class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    <property  name="prefix"  value="/"/>
+    <property  name="suffix"   value=".jsp"/>
+  </bean>
+  <bean id="multipartResolver"  
+     class="org.springframework.web.multipart.commons.CommonsMultipartResolver"/>
+</beans>
+------------web.xml--------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app id="WebApp_ID" version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee 
+http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+	<display-name>
+	SpringMVC</display-name>
+	<servlet>
+	  <servlet-name>spring</servlet-name>
+	  <servlet-class>
+	  org.springframework.web.servlet.DispatcherServlet</servlet-class>
+	  <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+       <servlet-name>spring</servlet-name>
+       <url-pattern>*.html</url-pattern>
+    </servlet-mapping>
+</web-app>
+===========================================================
+Title:  SpringMVCTiles application
+===========================================================
+------------TilesController.java--------------------
+package com.sathya.spring.mvc.controller;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+@Controller
+public class TilesController {
+	@RequestMapping("welcome")
+	public  ModelAndView  m1()
+	{
+		return  new  ModelAndView("welcome");
+	}
+	@RequestMapping("friends")
+	public  ModelAndView  m2()
+	{
+		return new ModelAndView("friends");
+	}
+	@RequestMapping("office")
+	public  ModelAndView  m3()
+	{
+		return  new  ModelAndView("office");
+	}
+}
+------------index.jsp--------------------
+<%-- index.jsp --%>
+<jsp:forward  page="welcome.html"/>
+------------welcome.jsp--------------------
+<h2> 
+Welcome to Spring with Tiles
+</h2>
+------------header.jsp--------------------
+<div align="center" style="font-weight:bold">
+Sathya Technologies
+</div>
+------------footer.jsp--------------------
+<div align="center">&copy; Sekhar.com</div>
+------------menu.jsp--------------------
+ <br><br>
+ <a  href="friends.html">Friends</a> <br><br>
+ <a  href="office.html"> Office </a>
+-----------layout.jsp--------------------
+	<!--  layout.jsp -->
+<%@taglib uri="http://tiles.apache.org/tags-tiles" prefix="tiles"%>
+<html>
+  <body>
+   <table border="1" cellpadding="2" cellspacing="2" align="center">
+    <tr>
+     <td height="30" colspan="2">
+        <tiles:insertAttribute name="header" />
+     </td>
+    </tr>
+    <tr>
+      <td height="250">
+        <tiles:insertAttribute name="menu" />
+      </td>
+      <td width="350">
+         <tiles:insertAttribute name="body" />
+      </td>
+     </tr>
+     <tr>
+       <td height="30" colspan="2">
+         <tiles:insertAttribute name="footer" />
+       </td>
+     </tr>
+   </table>
+  </body>
+</html>
+------------office.jsp--------------------
+<html>
+    <body>
+      <center>
+          SATHYA TECHNOLOGIES<br>
+          AMEERPET <br>
+          HYD
+       </center>          
+     </body>
+</html>
+------------friends.jsp--------------------
+<html>
+   <body>
+    <center>
+        SPRING<br>
+        HIBERNATE<br>
+	WEBSERVICES
+     </center>        
+   </body>
+</html>
+------------spring-servlet.xml--------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+ xmlns:context="http://www.springframework.org/schema/context"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+   <context:component-scan  base-package="com.sathya.spring.mvc.controller"/>
+  <bean id="viewResolver" 
+  class="org.springframework.web.servlet.view.UrlBasedViewResolver">
+    <property  name="viewClass" 
+    value="org.springframework.web.servlet.view.tiles2.TilesView"/>
+  </bean>
+  <bean id="configurer"  
+  class="org.springframework.web.servlet.view.tiles2.TilesConfigurer">
+    <property  name="definitions">
+       <list>
+          <value>/WEB-INF/tiles.xml</value>
+       </list>
+     </property>                  
+   </bean>                  
+</beans>
+-----------------------------tiles.xml-------------------------------------------
+<!DOCTYPE tiles-definitions PUBLIC
+       "-//Apache Software Foundation//DTD Tiles Configuration 2.0//EN"
+       "http://tiles.apache.org/dtds/tiles-config_2_0.dtd">
+		<!--   tiles.xml  -->
+<tiles-definitions>
+  <definition name="baseLayout" template="/layout.jsp">
+      <put-attribute name="header" value="/header.jsp"/>
+      <put-attribute name="menu"   value="/menu.jsp"/>
+      <put-attribute name="body"   value=""/>
+      <put-attribute name="footer"   value="/footer.jsp"/>
+  </definition>
+  
+  <definition name="welcome" extends="baseLayout">
+      <put-attribute name="body"   value="/welcome.jsp"/>      
+  </definition>
+  
+  <definition name="friends" extends="baseLayout">
+      <put-attribute name="body"   value="/friends.jsp"/>      
+  </definition>
+  
+  <definition name="office" extends="baseLayout">
+      <put-attribute name="body"   value="/office.jsp"/>      
+  </definition>
+</tiles-definitions>
+-------------------------web.xml-------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app id="WebApp_ID" version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee
+http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+	<servlet>
+	  <servlet-name>spring</servlet-name>
+	  <servlet-class>org.springframework.web.servlet.DispatcherServlet
+	  </servlet-class>
+	  <load-on-startup>1</load-on-startup>
+       </servlet>
+      <servlet-mapping>
+          <servlet-name>spring</servlet-name>
+          <url-pattern>*.html</url-pattern>
+      </servlet-mapping>
+</web-app>
+=============================================================
+Title:  PdfExcelApp  application
+=============================================================
+------------MyController.java--------------------
+package com.sathya.spring;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+@Controller
+public class MyController 
+{
+	@RequestMapping("pdf")
+	public  ModelAndView  pdfResponse()
+	{
+		return  new  ModelAndView("pdf");
+	}
+	@RequestMapping("excel")
+	public  ModelAndView  excelResponse()
+	{
+		return  new  ModelAndView("excel");
+	}
+
+}
+------------MyExcelView.java--------------------
+package com.sathya.spring.controller;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.springframework.web.servlet.view.document.AbstractExcelView;
+
+public class MyExcelView extends AbstractExcelView 
+{
+	protected void buildExcelDocument(Map m, HSSFWorkbook wb,
+			HttpServletRequest req, HttpServletResponse res) throws Exception 
+	{
+		Sheet    sheet =wb.createSheet("Sheet1");
+		
+		Row   r1 = sheet.createRow(0);
+		Cell    c1 = r1.createCell(0);
+		c1.setCellValue("Company name");
+		Cell   c2 = r1.createCell(1);
+		c2.setCellValue("Website");
+		
+		Row   r2=sheet.createRow(1);
+		Cell   c3=r2.createCell(0);
+		c3.setCellValue("Oracle");
+		Cell   c4=r2.createCell(1);
+		c4.setCellValue("http://www.oracle.com");
+		
+		Row  r3=sheet.createRow(2);
+		Cell   c5=r3.createCell(0);
+		c5.setCellValue("IBM");
+		Cell   c6 = r3.createCell(1);
+		c6.setCellValue("http://www.ibm.com");
+		
+	}
+}
+
+----------------------------------MyPdfView.java--------------------
+package com.sathya.spring.controller;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.view.document.AbstractPdfView;
+import com.lowagie.text.Document;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Table;
+import com.lowagie.text.pdf.PdfWriter;
+public class MyPdfView extends AbstractPdfView
+{
+
+	@Override
+	protected void buildPdfDocument(Map m, Document doc,
+			PdfWriter writer, HttpServletRequest request, HttpServletResponse response)
+			throws Exception 
+	{
+		Paragraph p = new Paragraph("Java Platform, Standard Edition (Java SE) lets
+		you develop and deploy Java applications on desktops and servers, as well as in 
+		today's demanding embedded environments. Java offers the rich user interface,
+		performance, versatility, portability, and security that today's applications require.");
+		p.setAlignment("center");
+		
+		Table   t  =new  Table(2);
+		t.addCell("Oracle");
+		t.addCell("http://www.oracle.com");
+		
+		t.addCell("IBM");
+		t.addCell("http://www.ibm.com");
+		
+		t.addCell("Apache");
+		t.addCell("http://www.apache.com");
+		
+		doc.add(p);
+		doc.add(t);
+	}
+
+}
+--------------index.html--------------------
+<center>
+  <a  href="pdf.form">PDF</a> <br>
+  <a  href="excel.form">Excel</a>
+</center>
+------------spring-servlet.xml--------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+	<context:component-scan
+		base-package="com.sathya.spring" />
+    <bean id="id"  
+    class="org.springframework.web.servlet.view.BeanNameViewResolver"/>
+    <bean  name="pdf"   class="com.sathya.spring.MyPdfView"/>
+    <bean  name="excel"  class="com.sathya.spring.MyExcelView"/>		
+</beans>
+
+-------------------web.xml--------------------
+<web-app>
+	<display-name>Spring3MVC</display-name>
+	<welcome-file-list>
+		<welcome-file>index.html</welcome-file>
+	</welcome-file-list>
+	<servlet>
+		<servlet-name>spring</servlet-name>
+		<servlet-class>
+			org.springframework.web.servlet.DispatcherServlet
+		</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>spring</servlet-name>
+		<url-pattern>*.form</url-pattern>
+	</servlet-mapping>
+</web-app>
+===========================================================
+		Title:  Spring  with  Wizard  Form
+-------------------------index.jsp-----------------------------------------
+<jsp:forward  page="firstPage.form"></jsp:forward>
+------------------------page1.jsp-------------------
+<%@taglib   uri="http://www.springframework.org/tags/form"  prefix="form"%>
+<center>
+  <form:form   action="process.form"  method="post"  commandName="u">
+    Username : <form:input   path="uname"/> <br>
+    <input  type=hidden   name="page"    value="0">
+    <input  type=submit   value="Next"    name="_target1">
+  </form:form>    
+</center>
+----------------------page2.jsp-----------------
+<%@taglib   uri="http://www.springframework.org/tags/form"  prefix="form"%>
+<center>
+  <form:form   action="process.form"  method="post"  commandName="u">
+    Password : <form:password   path="pwd"/> <br>
+    <input  type=hidden   name="page"    value="1">
+    <input   type=submit   value="Prev"    name="_target0">
+    <input  type=submit   value="Next"    name="_target2">
+  </form:form>    
+</center>
+------------------------page3.jsp----------------------
+<%@taglib   uri="http://www.springframework.org/tags/form"  prefix="form"%>
+<center>
+  <form:form   action="process.form"  method="post"  commandName="u">
+    Email : <form:input   path="email"/> <br>
+    <input  type=hidden   name="page"    value="2">
+    <input  type=submit   value="Prev"    name="_target1">
+    <input  type=submit   value="Finish"   name="_finish">
+  </form:form>    
+</center>
+------------success.jsp-------------------
+<h1>
+  ${msg}
+</h1>
+------------spring-servlet.xml---------------
+<beans   xmlns="http://www.springframework.org/schema/beans"
+xmlns:context="http://www.springframework.org/schema/context"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+  <context:component-scan   base-package="com.sathya.spring"/>
+  <!--   view  resolver  -->
+  <bean    class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    <property   name="prefix"     value="/"/>
+    <property   name="suffix"      value=".jsp"/>
+  </bean>
+</beans>  
+-------------User.java-------------------
+package com.sathya.spring;
+public class User
+{
+	private   String   uname,pwd,email;
+	//setters & getters
+	public String getUname() {
+		return uname;
+	}
+	public void setUname(String uname) {
+		this.uname = uname;
+	}
+	public String getPwd() {
+		return pwd;
+	}
+	public void setPwd(String pwd) {
+		this.pwd = pwd;
+	}
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+}
+-------------UserController.java---------------------
+package com.sathya.spring;
+import javax.servlet.http.HttpServletRequest;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import org.springframework.web.bind.support.SessionStatus;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.util.WebUtils;
+@Controller
+@SessionAttributes("u")
+public class UserController
+{
+	String   pages[ ]={"page1", "page2", "page3"};
+	@RequestMapping(value="firstPage")
+	public    ModelAndView    getFirstPage()
+	{
+		 return   new  ModelAndView("page1", "u", new  User());
+	}
+	@RequestMapping(value="process",  method=RequestMethod.POST)
+	public    ModelAndView     processForm(@ModelAttribute("u")User  user,
+	@RequestParam("page")int  currentPage, HttpServletRequest  request, 
+	SessionStatus  status)
+	{
+		int   i = WebUtils.getTargetPage(request, "_target", currentPage);
+		String   str = request.getParameter("_finish");
+		if("Finish".equals(str))
+		{
+			String  s1 = user.getUname()+"  "+user.getPwd()+" "+user.getEmail();
+			status.setComplete();
+			return  new  ModelAndView("success", "msg", s1);
+		}
+		else
+		{
+			return  new  ModelAndView(pages[i]);
+		}
+	}
+}
+==========================================================
+	Title:  SpringMVC -- Hibernate -- CURD   operations
+------------------index.jsp------------------------------------
+    <h2>Spring4MVC with Hibernate3 CRUD Example using Annotations</h2>
+    <h2>1. <a href="employees.html">List of Employees</a></h2>
+    <h2>2. <a href="add.html">Add Employee</a></h2>
+---------------addEmployee.jsp----------------------------
+<html>
+	<head>
+		<title>Spring MVC Form Handling</title>
+	</head>
+	<body>
+		<h2>Add Employee Data</h2>
+		<form method="POST" action="save.html">
+	   		<table>
+			    <tr>
+			        <td>Employee ID:</td>
+			        <td><input type=text   name="empid"></td>
+			    </tr>
+			    <tr>
+			        <td>Employee Name:</td>
+			        <td><input  type=text   name="empname"></td>
+			    </tr>
+			    <tr>
+			        <td>Employee Age:</td>
+			        <td><input type=text   name="empage"></td>
+			    </tr>
+			    <tr>
+			        <td>Employee Salary:</td>
+			        <td><input type=text   name="empsalary"></td>
+			    </tr>
+			    
+			    <tr>
+			        <td>Employee Address:</td>
+                    <td><input  type=text   name="empaddress"></td>
+			    </tr>
+			    <tr>
+			      <td colspan="2"><input type="submit" value="Submit"/></td>
+		      </tr>
+			</table> 
+		</form>
+	</body>
+</html>
+---------------------employeesList.jsp-------------------------------
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<html>
+<head>
+<title>All Employees</title>
+</head>
+<body>
+<h1>List Employees</h1>
+<h3><a href="add.html">Add More Employee</a></h3>
+<c:if test="${!empty employees}">
+	<table align="left" border="1">
+		<tr>
+			<th>Employee ID</th>
+			<th>Employee Name</th>
+			<th>Employee Age</th>
+			<th>Employee Salary</th>
+			<th>Employee Address</th>
+			<th>Actions on Row</th>
+		</tr>
+
+		<c:forEach items="${employees}" var="employee">
+			<tr>
+				<td><c:out value="${employee.empId}"/></td>
+				<td><c:out value="${employee.empName}"/></td>
+				<td><c:out value="${employee.empAge}"/></td>
+				<td><c:out value="${employee.salary}"/></td>
+				<td><c:out value="${employee.empAddress}"/></td>
+				<td align="center"><a href="edit.html?id=${employee.empId}">Edit</a> 
+				| <a href="delete.html?id=${employee.empId}">Delete</a></td>
+			</tr>
+		</c:forEach>
+	</table>
+</c:if>
+</body>
+</html>
+----------------------editEmployee.jsp----------------------------------
+<html>
+	<head>
+		<title>Spring MVC Form Handling</title>
+	</head>
+	<body>
+		<h2>Edit Employee Data</h2>
+		
+		<form method="POST" action="save.html">
+	   		<table>
+			    <tr>
+			        <td>Employee ID:</td>
+			        <td><input type=text   name="empid"
+				value=<%=request.getAttribute("eid")%>  readonly="true"></td>
+			    </tr>
+			    <tr>
+			        <td>Employee Name:</td>
+			        <td><input  type=text   name="empname"></td>
+			    </tr>
+			    <tr>
+			        <td>Employee Age:</td>
+			        <td><input type=text   name="empage"></td>
+			    </tr>
+			    <tr>
+			        <td>Employee Salary:</td>
+			        <td><input type=text   name="empsalary"></td>
+			    </tr>
+			    
+			    <tr>
+			        <td>Employee Address:</td>
+                    <td><input  type=text   name="empaddress"></td>
+			    </tr>
+			    <tr>
+			      <td colspan="2"><input type="submit" value="Submit"/></td>
+		      </tr>
+			</table> 
+		</form>
+	</body>
+</html>
+-----------------------spring-servlet.xml-------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	
+	xsi:schemaLocation="
+http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+	<context:component-scan base-package="com.sathya.spring" />
+        <context:annotation-config/>
+	
+	<bean id="viewResolver"
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/" />
+		<property name="suffix" value=".jsp" />
+	</bean>
+
+	<bean id="ds"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://localhost:3306/test" />
+		<property name="username" value="root" />
+		<property name="password" value="root" />
+	</bean>
+
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+		<property name="dataSource" ref="ds" />
+		<property name="annotatedClasses">
+			<list>
+				<value>com.sathya.spring.model.Employee</value>
+			</list>
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>				
+			</props>
+		</property>
+	</bean>
+
+	<bean  id="ht"  class="org.springframework.orm.hibernate3.HibernateTemplate">
+	    <property  name="sessionFactory"    ref="sessionFactory"/>
+	</bean>
+</beans>
+--------------------EmployeeController.java--------------------------------------
+package com.sathya.spring.controller;
+import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
+import com.sathya.spring.dao.EmployeeDao;
+import com.sathya.spring.model.Employee;
+@Controller
+public class EmployeeController 
+{
+	@Autowired
+	private EmployeeDao employeeDao;
+	@RequestMapping(value = "/save", method = RequestMethod.POST)
+	public ModelAndView saveEmployee(HttpServletRequest  request)
+	{
+		Employee employee = new Employee();
+		employee.setEmpId(Integer.parseInt(request.getParameter("empid")));
+		employee.setEmpName(request.getParameter("empname"));
+		employee.setEmpAddress(request.getParameter("empaddress"));
+		employee.setEmpAge(Integer.parseInt(request.getParameter("empage")));
+		employee.setSalary(Long.parseLong(request.getParameter("empsalary")));
+		employeeDao.addEmployee(employee);
+		return new ModelAndView("index");
+	}
+	@RequestMapping(value="/employees", method = RequestMethod.GET)
+	public ModelAndView listEmployees(ModelMap  map) 
+	{
+		List<Employee>   list=employeeDao.listEmployeess();
+		map.addAttribute("employees",list);
+		return new ModelAndView("employeesList");
+	}
+	@RequestMapping(value = "/add", method = RequestMethod.GET)
+	public ModelAndView addEmployee()
+	{
+		return new ModelAndView("addEmployee");
+	}
+	@RequestMapping(value = "/delete", method = RequestMethod.GET)
+	public ModelAndView deleteEmployee(@RequestParam("id")int  empid,ModelMap  map)
+	{
+		Employee   employee=new  Employee();
+		employee.setEmpId(empid);
+		employeeDao.deleteEmployee(employee);
+		List<Employee>   list=employeeDao.listEmployeess();
+		map.addAttribute("employees",list);
+		return new ModelAndView("employeesList");
+	}
+	@RequestMapping(value = "/edit", method = RequestMethod.GET)
+	public ModelAndView editEmployee(@RequestParam("id")int  empid) 
+	{
+			
+		return new ModelAndView("editEmployee","eid",empid);
+	}
+}
+--------------------EmployeeDao.java---------------------------------------
+package com.sathya.spring.dao;
+import java.util.List;
+import com.sathya.spring.model.Employee;
+public interface EmployeeDao 
+{
+	
+	public void addEmployee(Employee employee);
+
+	public List<Employee> listEmployeess();
+	
+	public void deleteEmployee(Employee employee);
+}
+------------------EmployeeDaoImpl.java--------------------------------
+package com.sathya.spring.dao;
+import java.util.List;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.hibernate3.HibernateTemplate;
+import org.springframework.stereotype.Repository;
+import com.sathya.spring.model.Employee;
+@Repository("employeeDao")
+public class EmployeeDaoImpl implements EmployeeDao
+{
+	@Autowired
+	private HibernateTemplate   ht;
+	public void addEmployee(Employee employee)
+	{
+		ht.saveOrUpdate(employee);
+	}
+	public List<Employee> listEmployeess()
+	{
+		List<Employee>  list=ht.loadAll(Employee.class);
+		return  list;
+	}
+	public void deleteEmployee(Employee  employee)
+	{
+		ht.delete(employee);
+		
+	}
+}
+--------------------Employee.java-----------------------------------
+package com.sathya.spring.model;
+import java.io.Serializable;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+@Entity
+public class Employee implements Serializable
+{
+	@Id
+	@Column(name = "empid")
+	private Integer empId;
+	@Column(name="empname",length=10)
+	private String empName;
+	@Column(name="empaddress",length=10)
+	private String empAddress;
+	@Column(name="salary")
+	private Long salary;
+	@Column(name="empage")
+	private Integer empAge;
+	public Integer getEmpId() {
+		return empId;
+	}
+	public void setEmpId(Integer empId) {
+		this.empId = empId;
+	}
+	public String getEmpName() {
+		return empName;
+	}
+	public void setEmpName(String empName) {
+		this.empName = empName;
+	}
+	public String getEmpAddress() {
+		return empAddress;
+	}
+	public void setEmpAddress(String empAddress) {
+		this.empAddress = empAddress;
+	}
+	public Long getSalary() {
+		return salary;
+	}
+	public void setSalary(Long salary) {
+		this.salary = salary;
+	}
+	public Integer getEmpAge() {
+		return empAge;
+	}
+	public void setEmpAge(Integer empAge) {
+		this.empAge = empAge;
+	}
+}
+==================================================
+	
+

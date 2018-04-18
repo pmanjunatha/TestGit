@@ -1,0 +1,1057 @@
+=============Spring Restful  CURD  Application===================
+------------User.java---------------------
+package com.spring.service;
+import java.io.Serializable;
+public class User  implements  Serializable
+{
+	private  int     id;
+	private  String  name;
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+}
+-----------UserController.java----------------
+package com.spring.service;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import com.spring.dao.UserDao;
+@RestController
+public class UserController 
+{
+	@Autowired
+	private  UserDao  userDao;
+	
+	@RequestMapping(value="/getUsers", method=RequestMethod.GET, produces=MediaType.APPLICATION_JSON_VALUE)
+	public   ResponseEntity<List<User>>  getAllUsers()
+	{
+		List<User>  userList = userDao.findAllUsers();
+		return  new  ResponseEntity<List<User>>(userList,HttpStatus.OK);
+	}
+
+	@RequestMapping(value="/getUserById/{id}",  method=RequestMethod.GET, produces=MediaType.APPLICATION_JSON_VALUE)
+	public   ResponseEntity<User>    getUserById(@PathVariable("id")int  id)
+	{
+		User  u = userDao.findUserById(id);
+		return   new  ResponseEntity<User>(u, HttpStatus.OK);
+	}
+	
+	@RequestMapping(value="/addUser",  method=RequestMethod.POST)
+	public   String   createNewUser(@RequestBody User  user)
+	{
+		String  str = userDao.addUser(user);
+		return  str;
+	}
+}
+-----------------UserDao.java----------------------------
+package com.spring.dao;
+import java.util.List;
+import com.spring.service.User;
+public interface UserDao
+{
+	List<User>   findAllUsers();
+	User         findUserById(int  id);
+	String       addUser(User  obj);
+}
+--------------UserDaoImpl.java--------------------------
+package com.spring.dao;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+import com.spring.service.User;
+@Repository
+public class UserDaoImpl implements UserDao
+{
+	@Autowired
+	private  JdbcTemplate  jt;
+
+	public List<User> findAllUsers() 
+	{
+		List<User>   userList = new  ArrayList<User>();
+		List  list=jt.queryForList("select  *  from  USERS");
+		Iterator  it = list.iterator();
+		while(it.hasNext())
+		{
+			Map  map=(Map)it.next();
+			User  u = new  User();
+			BigDecimal  bd=(BigDecimal)map.get("id");
+			int  i = bd.intValue();
+			u.setId(i);
+			u.setName((String)map.get("name"));
+			userList.add(u);
+		}
+		return userList;
+	}
+
+	public User findUserById(int id) 
+	{
+		Map  map = jt.queryForMap("select  *  from  Users  where  id=?", id);
+		User   u;
+		if(map != null)
+		{
+			u = new  User();
+			BigDecimal  bd=(BigDecimal)map.get("id");
+			int  i = bd.intValue();
+			u.setId(i);
+			u.setName((String)map.get("name"));
+		}
+		else
+		{ 
+			u=null;
+		}
+		return  u;
+	}
+
+	public String addUser(User obj) 
+	{
+		String  str;
+		int  id = obj.getId();
+		String  name=obj.getName();
+		int  i = jt.update("insert  into  users values(?,?)", id,name);
+		if(i==1)
+		{
+			str="User  inserted.";
+		}
+		else
+		{
+			str="Sorry, User already exist";
+		}
+		return  str;
+	}
+}
+----------------spring-servlet.xml---------------------
+<beans   xmlns="http://www.springframework.org/schema/beans"
+xmlns:mvc="http://www.springframework.org/schema/mvc"
+xmlns:context="http://www.springframework.org/schema/context"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-4.0.xsd
+http://www.springframework.org/schema/mvc
+http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd">
+
+  <context:component-scan   base-package="com.spring"/>
+  <mvc:annotation-driven/>
+  <bean  id="jt"    class="org.springframework.jdbc.core.JdbcTemplate">
+       <property    name="dataSource"     ref="ds"/>
+  </bean>
+  <bean    id="ds"    class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+       <property   name="driverClassName"    value="oracle.jdbc.driver.OracleDriver"/>
+       <property    name="url"     value="jdbc:oracle:thin:@localhost:1521:XE"/>
+       <property    name="username"     value="system"/>
+       <property   name="password"     value="tiger"/>
+  </bean>
+</beans>  
+----------------web.xml------------------------------
+<web-app>
+  <servlet>
+      <servlet-name>spring</servlet-name>
+      <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+      <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+      <servlet-name>spring</servlet-name>
+      <url-pattern>/rest/*</url-pattern>
+  </servlet-mapping>
+</web-app>
+===================================================================================
+=================Spring  Rest  Client  Application=============================
+------------------User.java-----------------------------------
+package com.spring;
+import java.io.Serializable;
+public class User  implements  Serializable
+{
+	private  int     id;
+	private  String  name;
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+}
+----------------Main.java------------------------------------
+package com.spring;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import org.springframework.web.client.RestTemplate;
+public class Main 
+{
+	public  static  void  main(String args[])
+	{
+		RestTemplate   restTemplate = new  RestTemplate();
+		//calling  getAllUsers()
+		List  userList =
+		restTemplate.getForObject("http://localhost:2016/SpringRest2/rest/getUsers",
+		List.class);
+		Iterator  it = userList.iterator();
+		while(it.hasNext())
+		{
+			LinkedHashMap  hashMap=(LinkedHashMap)it.next();
+			System.out.println(hashMap);
+		}
+		System.out.println("===============");
+		//calling  getUserById()
+		User   u =
+		restTemplate.getForObject("http://localhost:2016/SpringRest2/rest/getUserById/101", 
+		User.class);
+		System.out.println(u.getId()+"  "+u.getName());;
+		System.out.println("=============");
+		//calling  createNewUser()
+		User  u1 = new  User();
+		u1.setId(106);  u1.setName("FFF");
+		String  str = 
+		restTemplate.postForObject("http://localhost:2016/SpringRest2/rest/addUser", 
+		u1, String.class);
+		System.out.println(str);
+	}
+}
+================Spring Security1  Application===================================
+--------------index.jsp----------------------------------------
+<a  href="welcome.form"> Welcome to All</a>
+<br>
+<a  href="admin.form"> Admin</a>
+--------------welcome.jsp----------------------------
+<h1>  Welcome  to  ALL</h1>
+-------------admin.jsp-----------------------------
+<h1></h1><Font  color=red> Only  welcome  to  Admin</Font> </h1>
+-------------MyController.java-------------------
+package com.sathya.spring.mvc.controller;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+@Controller
+public class MyController {
+	@RequestMapping(value="/welcome")
+	public  ModelAndView  sayWelcome()
+	{
+		return  new  ModelAndView("welcome");
+	}
+	@RequestMapping(value="/admin")
+	public  ModelAndView   sayWelcomeToAdmin()
+	{
+		return new  ModelAndView("admin");
+	}
+}
+---------------web.xml---------------------------
+<web-app>
+  <servlet>
+    <servlet-name>spring</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>spring</servlet-name>
+    <url-pattern>*.form</url-pattern>
+  </servlet-mapping>
+  
+  <filter>
+    <filter-name>springSecurityFilterChain</filter-name>
+    <filter-class>
+		 org.springframework.web.filter.DelegatingFilterProxy
+	 </filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>springSecurityFilterChain</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+  
+  <context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>/WEB-INF/security-config.xml</param-value>
+  </context-param>
+  
+  <listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+  </listener>
+</web-app>
+----------------security-config.xml-----------------------
+<beans   xmlns:security="http://www.springframework.org/schema/security"
+	xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+	http://www.springframework.org/schema/security
+	http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+ 
+	<security:http auto-config="true">
+		<security:intercept-url pattern="/admin**"   
+		access="ROLE_USER" />
+		 <security:http-basic/> 
+		
+	</security:http>
+ 
+	<security:authentication-manager>
+	  <security:authentication-provider>
+	    <security:user-service>
+		     <security:user name="sekhar"  password="123456"
+		      authorities="ROLE_USER" />
+		     <security:user name="Sathya"  password="Java"	
+		           authorities="ROLE_MANAGER" />
+	    </security:user-service>
+	  </security:authentication-provider>
+	</security:authentication-manager>
+ </beans>
+-------------------spring-servlet.xml----------------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+ xmlns:context="http://www.springframework.org/schema/context"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+  <context:component-scan 
+     base-package="com.sathya.spring.mvc.controller"/>
+  <bean   id="viewResolver"   
+     class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    <property   name="prefix"    value="/"/>
+    <property   name="suffix"      value=".jsp"/>
+  </bean>
+</beans>
+===================================================================================
+==================Spring  Security2  Application================================
+--------------index.jsp----------------------------------------
+<a  href="welcome.form"> Welcome to All</a>
+<br>
+<a  href="admin.form"> Admin</a>
+--------------welcome.jsp----------------------------
+<h1>  Welcome  to  ALL</h1>
+-------------admin.jsp-----------------------------
+<h1></h1><Font  color=red> Only  welcome  to  Admin</Font> </h1>
+-------------MyController.java-------------------
+package com.sathya.spring.mvc.controller;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
+@Controller
+public class MyController {
+	@RequestMapping(value="/welcome")
+	public  ModelAndView  sayWelcome()
+	{
+		return  new  ModelAndView("welcome");
+	}
+	@RequestMapping(value="/admin")
+	public  ModelAndView   sayWelcomeToAdmin()
+	{
+		return new  ModelAndView("admin");
+	}
+}
+---------------web.xml---------------------------
+<web-app>
+  <servlet>
+    <servlet-name>spring</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>spring</servlet-name>
+    <url-pattern>*.form</url-pattern>
+  </servlet-mapping>
+  
+  <filter>
+    <filter-name>springSecurityFilterChain</filter-name>
+    <filter-class>
+		 org.springframework.web.filter.DelegatingFilterProxy
+	 </filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>springSecurityFilterChain</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+  
+  <context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>/WEB-INF/security-config.xml</param-value>
+  </context-param>
+  
+  <listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+  </listener>
+</web-app>
+----------------security-config.xml------------------------
+<beans xmlns:security="http://www.springframework.org/schema/security"
+	xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+	http://www.springframework.org/schema/security
+	http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+ 
+	<security:http auto-config="true">
+		<security:intercept-url pattern="/admin**"   
+		access="ROLE_USER" />
+		 <security:form-login/> 
+	</security:http>
+ 
+	<security:authentication-manager>
+	  <security:authentication-provider>
+	     <security:jdbc-user-service  
+	     data-source-ref="ds"
+         users-by-username-query="select   username,password,enabled   from   users 
+	                          where   username=?" 
+         authorities-by-username-query="select   u.username, ur.authority   from   
+	 users u, user_roles ur where u.user_id = ur.user_id and u.username =?"/>
+	  </security:authentication-provider>
+	</security:authentication-manager>
+	
+	<bean id="ds"  class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+	   <property  name="driverClassName"  value="com.mysql.jdbc.Driver"/>
+	   <property  name="url"  value="jdbc:mysql://localhost:3306/test"/>
+	   <property  name="username"   value="root"/>
+	   <property  name="password"   value="root"/>
+   </bean>
+ </beans>
+-------------------spring-servlet.xml----------------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+ xmlns:context="http://www.springframework.org/schema/context"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+  <context:component-scan 
+     base-package="com.sathya.spring.mvc.controller"/>
+  <bean   id="viewResolver"   
+     class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    <property   name="prefix"    value="/"/>
+    <property   name="suffix"      value=".jsp"/>
+  </bean>
+</beans>
+===================================================================================
+================Declarative Transaction================================
+//Demo.java
+package com.sathya.spring.transaction;
+public interface Demo {
+  void  method1();
+}
+//DemoBean.java
+package com.sathya.spring.transaction;
+import org.springframework.jdbc.core.JdbcTemplate;
+public class DemoBean implements Demo
+{
+   private  JdbcTemplate  jt;
+   public  void  setJt(JdbcTemplate  jt)
+   {
+     this.jt=jt;
+   }
+   public  void  method1()
+   {
+      jt.update("insert  into  dept values(60,'EDU','HYD')");
+      jt.update("update emp set sal=6000  where empno=7788");
+       try {
+	   Thread.sleep(10000);
+	} catch (InterruptedException e) {
+	  e.printStackTrace();
+	}
+       jt.update("delete from  sathya  where stuid=111");
+   }
+}
+---------------------applicationContext.xml-----------------------------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+xmlns:aop="http://www.springframework.org/schema/aop"
+xmlns:tx="http://www.springframework.org/schema/tx"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+http://www.springframework.org/schema/tx
+http://www.springframework.org/schema/tx/spring-tx-3.0.xsd">
+  <!--  business bean configuration -->
+  <bean  id="db"   class="com.sathya.spring.transaction.DemoBean">
+     <property  name="jt"    ref="jt"/>
+  </bean>
+     <!--   transaction manager  -->
+  <bean  id="txm"  
+  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+     <property  name="dataSource"   ref="ds"/>
+  </bean>
+       <!--   JdbcTemplate  -->
+  <bean  id="jt"  
+    class="org.springframework.jdbc.core.JdbcTemplate">
+     <property  name="dataSource"  ref="ds"/>
+  </bean>
+       <!--   DriverManagerDataSource -->
+  <bean  id="ds" 
+   class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+      <property name="driverClassName"  value="oracle.jdbc.OracleDriver"/>
+      <property name="url"  value="jdbc:oracle:thin:@localhost:1521:xe"/>
+      <property name="username"  value="system"/>
+      <property name="password"  value="root"/>
+  </bean>
+   <!--   transaction configuration -->
+  <tx:advice  id="advice1"   transaction-manager="txm">
+    <tx:attributes>
+       <tx:method  name="method1"   propagation="REQUIRES_NEW"   
+       				    isolation="READ_COMMITTED"  
+          			    timeout="18"/>
+    </tx:attributes>
+  </tx:advice>  
+  <aop:config>
+     <aop:pointcut  id="pointcut1"  
+                      expression="execution(*   com.sathya.spring.transaction.*.*(..))"/>
+     <aop:advisor   advice-ref="advice1"  
+                       pointcut-ref="pointcut1"/>
+  </aop:config>
+ </beans>
+ -------------------------Main.java-----------------------------
+ import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.sathya.spring.transaction.Demo;
+public class Main
+{
+	public static void main(String[] args) 
+	{
+		ApplicationContext  ctx =new  
+		ClassPathXmlApplicationContext("applicationContext.xml");
+		Demo  db=(Demo)ctx.getBean("db");
+		try{
+		db.method1();
+		}catch(Exception e)
+		{
+			System.out.println(e);
+		}
+	}
+}
+=============Annotation Transaction=====================
+//Demo.java
+package com.sathya.spring.transaction;
+public interface Demo {
+  void method1();
+}
+//DemoBean.java
+package com.sathya.spring.transaction;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+public class DemoBean implements Demo
+{
+	private  JdbcTemplate  jt;
+	public  void  setJt(JdbcTemplate  jt)
+	{
+		this.jt=jt;
+	}
+	
+	@Transactional(propagation=Propagation.REQUIRES_NEW,
+	isolation=Isolation.SERIALIZABLE, timeout=5)
+	public  void  method1()
+	{
+			jt.update("insert  into  dept values(20,'RESEARCH','HYD')");
+			jt.update("update emp set sal=9900  where empno=7150");
+			try {
+				Thread.sleep(4000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			jt.update("delete from  sathya  where stuid=111");
+	}
+}
+----------------------applicationContext.xml--------------------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+
+xmlns:tx="http://www.springframework.org/schema/tx"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/tx
+http://www.springframework.org/schema/tx/spring-tx-3.0.xsd">
+
+  <!--  business bean configuration -->
+  <bean  id="db"   class="com.sathya.spring.transaction.DemoBean">
+     <property  name="jt"    ref="jt"/>
+  </bean>
+     <!--   transaction manager  -->
+  <bean  id="txm" 
+  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+     <property  name="dataSource"   ref="ds"/>
+  </bean>
+       <!--   JdbcTemplate  -->
+  <bean  id="jt"  class="org.springframework.jdbc.core.JdbcTemplate">
+     <property  name="dataSource"  ref="ds"/>
+  </bean>
+       <!--   DriverManagerDataSource -->
+  <bean  id="ds"  class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+      <property name="driverClassName"  value="oracle.jdbc.OracleDriver"/>
+      <property name="url"  value="jdbc:oracle:thin:@localhost:1521:xe"/>
+      <property name="username"  value="system"/>
+      <property name="password"  value="root"/>
+  </bean>
+   <tx:annotation-driven  transaction-manager="txm"/>    
+</beans>
+--------------------------Main.java-------------------------------
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.sathya.spring.transaction.Demo;
+public class Main {
+	public static void main(String[] args) {
+		ApplicationContext  ctx =
+		new  ClassPathXmlApplicationContext("applicationContext.xml");
+		Demo  db=(Demo)ctx.getBean("db");
+		db.method1();
+	}
+}
+==============Global  Transaction=============================
+//AccountInter.java
+package com.sathya.spring.global;
+public interface AccountInter {
+	void transferMoney(int accno1,int accno2,int amount) throws Exception;
+}
+//AccountImpl.java
+package com.sathya.spring.global;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
+public class AccountImpl implements AccountInter 
+{
+	private  JdbcTemplate  jt1;
+	private  JdbcTemplate  jt2;
+	public  void  setJt1(JdbcTemplate jt1)
+	{
+		this.jt1=jt1;
+	}
+	public  void  setJt2(JdbcTemplate jt2)
+	{
+		this.jt2=jt2;
+	}
+	@SuppressWarnings("deprecation")
+	@Override
+	@Transactional(timeout=8)
+	public void transferMoney(int accno1, int accno2, int amount) throws Exception
+	{
+		
+		int s1=jt1.queryForInt("select  bal  from  Account1 where  accno=?",accno1);
+		//deducting amount from balance
+		int s2 = s1-amount;
+		if(s2<500)
+		{
+			throw new Exception();
+		}
+		int s3=jt2.queryForInt("select  bal  from  Account2 where  accno=?",accno2);
+		//adding amount  to  balance
+		int s4 = s3+amount;
+		
+		jt1.update("update Account1  set bal=?  where accno=?",s2,accno1);
+		Thread.sleep(6000);
+		jt2.update("update Account2  set bal=?  where  accno=?",s4,accno2);
+		System.out.println("Transaction successful.....");
+	}
+}
+--------------------applicationContext.xml-------------------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+
+xmlns:tx="http://www.springframework.org/schema/tx"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/tx
+http://www.springframework.org/schema/tx/spring-tx-3.0.xsd">
+	<!-- business class configuration -->
+	<bean id="accimpl"  class="com.sathya.spring.global.AccountImpl">
+	  <property  name="jt1"  ref="jt1"/>
+	  <property  name="jt2"  ref="jt2"/>
+    </bean>
+    <!--  JdbcTemplate -->
+    <bean  id="jt1" class="org.springframework.jdbc.core.JdbcTemplate">
+      <property name="dataSource"   ref="ds1"/>
+    </bean>
+    <bean  id="jt2" class="org.springframework.jdbc.core.JdbcTemplate">
+      <property name="dataSource"   ref="ds2"/>
+    </bean>          	  
+    <!--  DataSource configuration -->
+    <bean id="ds1"   class="com.atomikos.jdbc.AtomikosDataSourceBean" 
+                                  init-method="init"  destroy-method="close">
+     	<property name="uniqueResourceName" value="A"/>
+		<property name="xaDataSourceClassName"  
+		                   value="oracle.jdbc.xa.client.OracleXADataSource"/>
+		<property name="xaProperties">
+			<props>
+				<prop key="databaseName">xe</prop>
+				<prop key="user">system</prop>
+				<prop key="password">root</prop>
+				<prop key="URL">jdbc:oracle:thin:@localhost:1521:xe</prop>
+			</props>
+		</property>
+		<property name="poolSize" value="1"/>
+	</bean>
+	<bean id="ds2"  class="com.atomikos.jdbc.AtomikosDataSourceBean" 
+	                              init-method="init" destroy-method="close">
+		<property name="uniqueResourceName" value="B"/>
+		<property name="xaDataSourceClassName" 
+		                   value="com.mysql.jdbc.jdbc2.optional.MysqlXADataSource"/>
+		<property name="xaProperties">
+			<props>
+				<prop key="databaseName">test</prop>
+				<prop key="user">root</prop>
+				<prop key="password">root</prop>
+				<prop key="URL">jdbc:mysql://localhost:3306/test</prop>
+			</props>
+		</property>
+		<property name="poolSize" value="1"/>
+	</bean>
+	<bean id="atomikostm"  class="com.atomikos.icatch.jta.UserTransactionManager" 
+	                                     init-method="init" destroy-method="close"/>
+	<bean id="txm"  class="org.springframework.transaction.jta.JtaTransactionManager">
+		<property name="transactionManager">
+			<ref bean="atomikostm"/>
+		</property>
+	</bean>
+	<tx:annotation-driven  transaction-manager="txm"/>
+</beans>	
+----------------------------Main.java-------------------------
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.sathya.spring.global.AccountInter;
+public class Main {
+	public static void main(String args[ ]) 
+	{
+		ApplicationContext  ctx=
+		new ClassPathXmlApplicationContext("applicationContext.xml");
+		Object  o = ctx.getBean("accimpl");
+		AccountInter  inter=(AccountInter)o;
+		try
+		{
+		inter.transferMoney(101,102,200);
+		}
+		catch(Exception e)
+		{
+			System.out.println("U r transaction unsuccessful");
+		}
+	}
+}
+=======================Spring Mail1 Application==========================
+//TestBean.java
+import  org.springframework.mail.SimpleMailMessage;
+import  org.springframework.mail.javamail.JavaMailSenderImpl;
+public  class  TestBean
+{
+	private  JavaMailSenderImpl   mailSender;
+	public  void  setMailSender(JavaMailSenderImpl  mailSender)
+	{
+		this.mailSender=mailSender;
+	}
+	public  void  sendEmail()
+	{
+		try
+		{
+			SimpleMailMessage  smm =new SimpleMailMessage();
+			smm.setTo("suri.yallanuri@yahoo.com");
+			smm.setSubject("Mail from Sekhar");
+			smm.setText("This is a Wish Mail  From Sekhar. Good  Morning");
+			mailSender.send(smm);
+			System.out.println("Mail  sent  successfully");
+		}
+		catch(Exception  e)
+		{
+			System.out.println(e);
+		}
+	}
+}
+---------------------spring-config.xml--------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans
+   http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+<!-- spring-config.xml -->
+<bean id="id1" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+  <property name="host" value="smtp.gmail.com"/>
+  <property name="username" value="aabcd2011@gmail.com"/>
+  <property name="password" value="technologies"/>
+  <property name="javaMailProperties">
+  <props>
+  	<prop key="mail.transport.protocol">smtp</prop>
+  	<prop key="mail.smtp.auth">true</prop>
+  	<prop key="mail.smtp.port">465</prop>
+  	<prop key="mail.smtp.socketFactory.port">465</prop>
+  	<prop key="mail.smtp.socketFactory.class">javax.net.ssl.SSLSocketFactory</prop>
+  	<prop key="mail.smtp.socketFactory.fallback">false</prop>
+  	<prop key="mail.smtp.quitwait">false</prop>
+  	<prop key="mail.smtp.starttls.enable">true</prop>
+  </props>
+  </property>
+</bean>
+<bean  id="id2"  class="TestBean">
+  <property  name="mailSender"  ref="id1"/>
+</bean>
+</beans>
+-------------------------Client.java---------------------------
+//Client.java
+import org.springframework.context.*;
+import org.springframework.context.support.*;
+public class Client 
+{
+	public static void main(String args[ ])
+	{
+		ApplicationContext context =
+		new ClassPathXmlApplicationContext("spring-config.xml");
+		Object o = context.getBean("id2");
+		TestBean  tb=(TestBean)o;
+		 tb.sendEmail();
+	}
+}
+====================Spring  Mail2  Application=========================
+//TestBean.java
+import javax.mail.internet.MimeMessage;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.mail.javamail.MimeMessageHelper;
+public  class  TestBean
+{
+	private  JavaMailSenderImpl   mailSender;
+	public  void  setMailSender(JavaMailSenderImpl  mailSender)
+	{
+		this.mailSender=mailSender;
+	}
+	public  void  sendEmail()
+	{
+		try
+		{
+			MimeMessage  msg=mailSender.createMimeMessage();
+			MimeMessageHelper  helper=new MimeMessageHelper(msg,true);
+			helper.setTo("sudha4954@gmail.com");
+			helper.setSubject("Mail  From  Spring Application");
+			helper.setText("This is a Test Mail with attachment From Sekhar");
+			FileSystemResource  fsr=new FileSystemResource("D:/pichai.jpg");
+			helper.addAttachment("pichai.jpg", fsr);
+			mailSender.send(msg);
+			System.out.println("Mail  sent  successfully");
+		}
+		catch(Exception  e)
+		{
+			System.out.println(e);
+		}
+	}
+}
+---------------------spring-config.xml--------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans
+   http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+<!-- spring-config.xml -->
+<bean id="id1" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+  <property name="host" value="smtp.gmail.com"/>
+  <property name="username" value="aabcd2011@gmail.com"/>
+  <property name="password" value="technologies"/>
+  <property name="javaMailProperties">
+  <props>
+  	<prop key="mail.transport.protocol">smtp</prop>
+  	<prop key="mail.smtp.auth">true</prop>
+  	<prop key="mail.smtp.port">465</prop>
+  	<prop key="mail.smtp.socketFactory.port">465</prop>
+  	<prop key="mail.smtp.socketFactory.class">javax.net.ssl.SSLSocketFactory</prop>
+  	<prop key="mail.smtp.socketFactory.fallback">false</prop>
+  	<prop key="mail.smtp.quitwait">false</prop>
+  	<prop key="mail.smtp.starttls.enable">true</prop>
+  </props>
+  </property>
+</bean>
+<bean  id="id2"  class="TestBean">
+  <property  name="mailSender"  ref="id1"/>
+</bean>
+</beans>
+-------------------------Client.java---------------------------
+//Client.java
+import org.springframework.context.*;
+import org.springframework.context.support.*;
+public class Client 
+{
+	public static void main(String args[ ])
+	{
+		ApplicationContext context =
+		new ClassPathXmlApplicationContext("spring-config.xml");
+		Object o = context.getBean("id2");
+		TestBean  tb=(TestBean)o;
+		 tb.sendEmail();
+	}
+}
+=====================JMS Application============================
+------------------------sender----------------------------------------
+//MyMessageCreator.java
+import   javax.jms.*;
+import   org.springframework.jms.core.*;
+public   class   MyMessageCreator   implements  MessageCreator
+{
+	@Override
+	 public Message createMessage(Session session)
+            {
+                TextMessage message = null;
+                try 
+                {
+                    message = session.createTextMessage();
+                    message.setText("Hello World");
+                }
+                catch (JMSException e)
+                {
+                    e.printStackTrace();
+                }
+                return message;
+        }
+};
+//MessageSender.java
+import org.springframework.jms.core.*;
+public class MessageSender {
+    private JmsTemplate jmsTemplate;
+    public void setJmsTemplate(JmsTemplate jmsTemplate) 
+    {
+        this.jmsTemplate = jmsTemplate;
+    }
+    public void sendMessage() 
+    {	
+		MyMessageCreator  creator=new MyMessageCreator();        
+		jmsTemplate.send(creator);
+    }
+}
+---------------------------spring.xml------------------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+  <bean id="cf"  class="org.springframework.jndi.JndiObjectFactoryBean">
+    <property name="jndiName" value="qcfactory"/>
+    <property  name="jndiEnvironment">
+	   <props>
+	         <prop  key="java.naming.factory.initial">
+		 com.sun.enterprise.naming.impl.SerialInitContextFactory</prop>
+		 <prop  key="java.naming.provider.url">iiop://localhost:4848</prop>
+       </props>
+    </property>
+  </bean>
+  <bean id="q"  class="org.springframework.jndi.JndiObjectFactoryBean">
+    <property name="jndiName" value="que"/>
+	<property  name="jndiEnvironment">
+	   <props>
+	         <prop  key="java.naming.factory.initial">
+		 com.sun.enterprise.naming.impl.SerialInitContextFactory</prop>
+		 <prop  key="java.naming.provider.url">iiop://localhost:4848</prop>
+       </props>
+    </property>
+  </bean>
+  <bean id="jt" class="org.springframework.jms.core.JmsTemplate">
+     <property name="connectionFactory" ref="cf"/>
+     <property name="defaultDestination"  ref="q"/>
+  </bean>
+  <bean id="ms"  class="MessageSender">
+    <property name="jmsTemplate"  ref="jt"/>
+  </bean>
+</beans>    
+---------------------------Client.java-------------------------------
+//Client.java
+import  org.springframework.context.ApplicationContext;
+import  org.springframework.context.support.ClassPathXmlApplicationContext;
+public class Client 
+{
+	public static void main(String args[])
+	{
+		ApplicationContext  ctx=new  ClassPathXmlApplicationContext("spring.xml");
+		MessageSender ms =(MessageSender)ctx.getBean("ms");
+		ms.sendMessage();
+		System.out.println("done");
+	}
+}
+------------------------------receiver--------------------------------
+//MessageReceiver.java
+import javax.jms.*;
+import org.springframework.jms.core.*;
+public class MessageReceiver {
+	private JmsTemplate jmsTemplate;
+    public void setJmsTemplate(JmsTemplate jmsTemplate) 
+    {
+        this.jmsTemplate = jmsTemplate;
+    }
+    public void receiveMessage()
+    {
+        Message message = jmsTemplate.receive();
+        TextMessage textMessage = null;
+        if (message instanceof TextMessage)
+        {
+            textMessage = (TextMessage)message;
+            try
+            {
+              System.out.println(textMessage.getText());
+            }
+            catch (JMSException e)
+            {
+                e.printStackTrace();
+            }
+       }
+    }	
+}
+---------------------spring.xml------------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+ <bean id="cf"  class="org.springframework.jndi.JndiObjectFactoryBean">
+    <property name="jndiName" value="qcfactory"/>
+    <property  name="jndiEnvironment">
+	   <props>
+	         <prop  key="java.naming.factory.initial">
+		 com.sun.enterprise.naming.impl.SerialInitContextFactory</prop>
+		 <prop  key="java.naming.provider.url">iiop://localhost:4848</prop>
+       </props>
+    </property>
+  </bean>
+  <bean id="q"  class="org.springframework.jndi.JndiObjectFactoryBean">
+    <property name="jndiName" value="que"/>
+	<property  name="jndiEnvironment">
+	   <props>
+	         <prop  key="java.naming.factory.initial">
+		 com.sun.enterprise.naming.impl.SerialInitContextFactory</prop>
+		 <prop  key="java.naming.provider.url">iiop://localhost:4848</prop>
+       </props>
+    </property>
+  </bean>
+  <bean id="jt" class="org.springframework.jms.core.JmsTemplate">
+     <property name="connectionFactory" ref="cf"/>
+     <property name="defaultDestination"  ref="q"/>
+  </bean>
+  <bean id="mr"  class="MessageReceiver">
+    <property name="jmsTemplate"  ref="jt"/>
+  </bean>
+</beans>    
+-----------------------Client.java---------------------------
+import  org.springframework.context.ApplicationContext;
+import  org.springframework.context.support.ClassPathXmlApplicationContext;
+public class Client 
+{
+	public static void main(String args[])
+	{
+		ApplicationContext  ctx=new  ClassPathXmlApplicationContext("spring.xml");
+		MessageReceiver mr =(MessageReceiver)ctx.getBean("mr");
+		mr.receiveMessage();
+		System.out.println("done");
+	}
+}
+==================================================================================

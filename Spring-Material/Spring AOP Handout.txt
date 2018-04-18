@@ -1,0 +1,202 @@
+	
+===============================================================================
+	Title:  AOP  Application  with XML based  AOP
+----------------Product.java-----------------------
+package com.sathya.spring.aop.model;
+public interface Product {
+	void add(int x,int y);
+	int    multiply(int x,int y);
+}
+---------------ProductImpl.java---------------------
+package com.sathya.spring.aop.model;
+public class ProductImpl implements Product {
+	@Override
+	public void add(int x, int y) {
+		  	System.out.println("Addition = "+(x+y));
+	}
+	@Override
+	public int multiply(int x, int y) {
+		return  (x*y);
+	}
+}
+--------------MyAdvices.java-------------------------
+package com.sathya.spring.aop.aspect;
+import org.aspectj.lang.JoinPoint;
+public class MyAdvices {
+	public  void  before(JoinPoint jp)
+	{
+		String  methodName=jp.getSignature().getName();
+		Object  args[ ]=jp.getArgs();
+		System.out.println("I am before advice to : "+methodName);
+		System.out.println("It's arguments values are : "+args[0]+" , "+args[1]);
+	}
+	public  void  afterReturning(JoinPoint jp,Object  result)
+	{
+		String  methodName=jp.getSignature().getName();
+		Object  args[ ]=jp.getArgs();
+		System.out.println("I am after returning advice to : "+methodName);
+		System.out.println("It's arguments values are : "+args[0]+" , "+args[1]);
+		System.out.println("The result of this method is : "+result);
+	}
+}
+---------------applicationContext.xml------------------------
+	<!--  applicationContext.xml -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+xmlns:aop="http://www.springframework.org/schema/aop"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+ 	<!--  business class  configuration  -->
+ 	<bean  id="pimpl"   class="com.sathya.spring.aop.model.ProductImpl"/>
+ 	<!--   advices class configuration -->
+ 	<bean  id="ma"    class="com.sathya.spring.aop.aspect.MyAdvices"/>
+ 	<!--   xml based aop configuration -->
+ 	<aop:config>
+ 	 <aop:aspect    ref="ma">
+	   <aop:pointcut  id="pt1" 
+	    expression="execution(*  com.sathya.spring.aop.model.Product.add(..))"/>
+	   <aop:pointcut  id="pt2" 
+	    expression="execution(* com.sathya.spring.aop.model.Product.multiply(..))"/> 	        
+ 	   <aop:before  pointcut-ref="pt2"  method="before"/>
+            <aop:after-returning  pointcut-ref="pt2"
+                       method="afterReturning"  returning="result"/>
+         </aop:aspect>
+    </aop:config>
+    <aop:aspectj-autoproxy/>
+</beans>
+------------------AOPMain.java----------------------------
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.sathya.spring.aop.model.Product;
+public class AopMain {
+		public static void main(String[ ] args) {
+		ApplicationContext  ctx=
+		new  ClassPathXmlApplicationContext("applicationContext.xml");
+		Object  obj=ctx.getBean("pimpl");
+		Product  p=(Product)obj;
+		p.add(10,20);
+		System.out.println("===========");
+		p.multiply(10, 20);
+	}
+}
+==============================================================================
+	Title:  AOP Application with  Annotations based AOP
+-------------------Demo.java----------------------
+package com.sathya.spring.aop.model;
+public interface Demo {
+	void businessMethod1(int amount) throws Exception;
+	void businessMethod2();
+}
+------------------DemoImpl.java------------------
+package com.sathya.spring.aop.model;
+import com.sathya.spring.aop.exception.InsufficientAmountException;
+public class DemoImpl implements Demo 
+{
+	@Override
+	public void businessMethod1(int amount) throws Exception 
+	{
+		if(amount <=0)
+			throw new InsufficientAmountException("U have given Amount as : "+
+			amount+" it is not valid");
+		else
+			System.out.println("Amount is  : "+amount+" it is valid");
+	}
+	@Override
+	public void businessMethod2() {
+		try
+		{
+			Thread.sleep(5000);
+		}
+		catch(Exception e)
+		{  }
+	}
+}
+---------------InsufficientAmountException.java-------------------
+package com.sathya.spring.aop.exception;
+public class InsufficientAmountException extends 
+                              RuntimeException 
+{
+	public  InsufficientAmountException(String message)
+	{
+		super(message);
+	}
+}
+------------------MyAspect.java---------------------------
+package com.sathya.spring.aop.aspect;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.After;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+@Aspect
+public class MyAspect {
+	@After("execution(* com.sathya.spring.aop.model.Demo.businessMethod1(..))")
+	public void  after(JoinPoint jp)
+	{
+		String str = jp.getSignature().getName();
+		System.out.println("I am after advice to : "+str);
+	}
+	@Around("execution(*  com.sathya.spring.aop.model.Demo.businessMethod2(..))")
+	public Object around(ProceedingJoinPoint  pjp)
+	{
+		Object o=null;
+		try{
+		long x=System.currentTimeMillis();
+		 o = pjp.proceed();
+		long y=System.currentTimeMillis();
+		long z = y-x;
+		String  str=pjp.getSignature().getName();
+		System.out.println("I am around advice to : "+str);
+		System.out.println("Time taken to run business is : "+z +" milliseconds");
+		}catch(Throwable  t)
+		{ }
+		return o;
+	}
+}
+----------------spring.xml-------------------------------
+<beans xmlns="http://www.springframework.org/schema/beans"
+xmlns:aop="http://www.springframework.org/schema/aop"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+   <!--   business class configuration -->
+   <bean  id="di"  class="com.sathya.spring.aop.model.DemoImpl"/>
+   <!--   aspect class configuration -->
+   <bean  id="myaspect"   class="com.sathya.spring.aop.aspect.MyAspect"/>
+   <aop:aspectj-autoproxy/> 
+</beans>
+----------------AOPMain.java-------------------------------
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.sathya.spring.aop.model.Demo;
+public class AOPMain 
+{
+	public static void main(String...  args) 
+	{
+		ApplicationContext  ctx=
+		new ClassPathXmlApplicationContext("spring.xml");
+		Object  o = ctx.getBean("di");
+		Demo  d=(Demo)o;
+		try{
+			d.businessMethod1(1000);
+		}
+		catch(Exception e)
+		{
+			System.out.println(e);
+		}
+		System.out.println("=========");
+		d.businessMethod2();
+		System.out.println("==========");
+		try{
+		d.businessMethod1(-100);
+		}catch(Exception e)
+		{
+			System.out.println(e);
+		}
+	}
+}
+================================================================
